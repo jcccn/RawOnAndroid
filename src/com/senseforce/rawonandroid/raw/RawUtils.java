@@ -10,6 +10,7 @@ import com.senseforce.rawonandroid.TimeChecker;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
 
 public class RawUtils {
 
@@ -31,9 +32,13 @@ public class RawUtils {
 	 * Native函数
 	 */
 
+    private static native void native_init();
+
     private static native byte[] unpackThumbnailBytes(String fileName);
 
     private static native int unpackThumbnailToFile(String rawFileName, String thumbFileName);
+
+    private static native void parseExif(String fileName, Object exifMap);
 
 
     /**
@@ -150,22 +155,20 @@ public class RawUtils {
     }
 
 
-    public static ExifInterface parseExif(String fileName) {
-        ExifInterface oldExif = null;
+    public static HashMap<String, String> parseExif(String fileName, boolean isJPEG) {
+        HashMap<String, String> exif = new HashMap<String, String>();
         try {
-            oldExif = new ExifInterface(fileName);
+            if (isJPEG) {
+                ExifInterface oldExif = new ExifInterface(fileName);
+                //这里拷贝属性
+            }
+            else {
+                parseExif(fileName, exif);
+            }
         } catch (IOException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
-        if (oldExif != null) {
-            Log.d("RAW", "parsed image height = " + oldExif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH));
-            try {
-                oldExif.saveAttributes();
-            } catch (IOException e) {
-                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-            }
-        }
-        return oldExif;
+        return exif;
     }
 
 

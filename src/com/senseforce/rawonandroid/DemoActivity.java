@@ -2,6 +2,7 @@ package com.senseforce.rawonandroid;
 
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
+import android.media.ExifInterface;
 import android.os.Bundle;
 import android.app.Activity;
 import android.os.Environment;
@@ -15,6 +16,8 @@ import android.widget.TextView;
 import com.senseforce.rawonandroid.raw.RawUtils;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
 
 public class DemoActivity extends Activity implements Handler.Callback, View.OnClickListener {
 
@@ -79,7 +82,7 @@ public class DemoActivity extends Activity implements Handler.Callback, View.OnC
 		return true;
 	}
 
-    private void notifyInterval(String log) {
+    private void showLog(String log) {
         Message msg = mHandler.obtainMessage();
         msg.what = MSG_TEST_INTERVAL;
         msg.obj = log;
@@ -89,7 +92,7 @@ public class DemoActivity extends Activity implements Handler.Callback, View.OnC
     private void checkAndNotify(String tag) {
         long interval = t.check(tag);
 
-        notifyInterval(tempString.delete(0, tempString.length()).append(tag).append(" 耗时 ").append(interval).append(" 毫秒").toString());
+        showLog(tempString.delete(0, tempString.length()).append(tag).append(" 耗时 ").append(interval).append(" 毫秒").toString());
     }
 
     @Override
@@ -118,7 +121,35 @@ public class DemoActivity extends Activity implements Handler.Callback, View.OnC
             return;
         }
 
-        notifyInterval("\n测试" + (rawFile.length()/(1024*1024)) + "M大小的" + rawFileName);
+        showLog("\n测试" + (rawFile.length() / (1024 * 1024)) + "M大小的" + rawFileName);
+
+        HashMap exif = RawUtils.parseExif(rawFileName, false);
+        showLog("原图宽度:" + exif.get(ExifInterface.TAG_IMAGE_WIDTH));
+        showLog("原图高度:" + exif.get(ExifInterface.TAG_IMAGE_LENGTH));
+        SimpleDateFormat sdf= new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        showLog("拍摄时间:" + sdf.format(1000 * Long.valueOf((String) exif.get(ExifInterface.TAG_DATETIME))));
+        showLog("ISO:" + exif.get(ExifInterface.TAG_ISO));
+        showLog("快门:" + exif.get("Shutter"));
+        showLog("光圈:" + exif.get(ExifInterface.TAG_APERTURE));
+        int rotation = Integer.valueOf((String)exif.get(ExifInterface.TAG_ORIENTATION));
+        String rotationString;
+        switch (rotation) {
+            case 0:
+                rotationString = "正常";
+                break;
+            case 3:
+                rotationString = "需要旋转180度";
+                break;
+            case 5:
+                rotationString = "需要逆时针旋转90度";
+                break;
+            case 6:
+                rotationString = "需要顺时针旋转90度";
+                break;
+            default:
+                rotationString = "未知角度";
+        }
+        showLog("影像方向:" + rotationString);
 
         t.prepare();
         RawUtils.saveThumbnailToFile(cr2FilePath, sdcardFilepath + "cr2_big.jpg");
