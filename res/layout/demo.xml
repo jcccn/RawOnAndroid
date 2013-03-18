@@ -36,6 +36,15 @@
         android:layout_alignLeft="@+id/textView"
         android:text="Test" />
 
+    <Button
+            android:id="@+id/button_clear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:layout_alignBottom="@+id/button"
+            android:layout_toRightOf="@+id/button"
+            android:text="Clear" />
+
     <View
         android:id="@+id/divider"
         android:layout_width="match_parent"

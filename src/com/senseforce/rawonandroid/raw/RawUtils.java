@@ -2,6 +2,7 @@ package com.senseforce.rawonandroid.raw;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.media.ExifInterface;
 import android.media.ThumbnailUtils;
 import android.util.Log;
@@ -84,8 +85,8 @@ public class RawUtils {
      * @param thumbFileName
      * @return
      */
-    public static int saveThumbnailToFile(String rawFileName, String thumbFileName) {
-        return  unpackThumbnailToFile(rawFileName, thumbFileName);
+    public static boolean saveThumbnailToFile(String rawFileName, String thumbFileName) {
+        return (unpackThumbnailToFile(rawFileName, thumbFileName) == 0);
     }
 
     public static boolean saveThumbnailToFitToFile(String rawFileName, String scaledFileName, int width, int height) {
@@ -93,6 +94,29 @@ public class RawUtils {
         t.prepare();
         Bitmap bitmap = unpackThumbnailBitmapToFit(rawFileName, width, height);
         t.check("读取缩略图并改尺寸");
+
+        if (bitmap == null || bitmap.getByteCount() == 0) {
+            return false;
+        }
+        HashMap exifMap = RawUtils.parseExif(rawFileName, false);
+        int flip = Integer.valueOf((String)exifMap.get(ExifInterface.TAG_ORIENTATION));
+        if (flip != 0) {
+            Matrix matrix = new Matrix();
+            int rotation = 0;
+            if (flip == 3) {
+                rotation = 180;
+            }
+            else if (flip == 5) {
+                rotation = 270;
+            }
+            else if (flip == 6) {
+                rotation = 90;
+            }
+            matrix.postRotate(rotation);
+            bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, false);
+            t.check("旋转位图");
+        }
+
         boolean result = compressBitmapAndSave(bitmap, scaledFileName);
         t.check("压缩为JPG");
         return result;
@@ -127,13 +151,15 @@ public class RawUtils {
     public static boolean compressBitmapAndSave(Bitmap bitmap, String savedFileName) {
         boolean result = false;
 
+        if (bitmap == null) {
+            return false;
+        }
+
         FileOutputStream outputStream = null;
         try {
             outputStream = new FileOutputStream(savedFileName);
 
-            if (bitmap != null) {
-                result = bitmap.compress(Bitmap.CompressFormat.JPEG, DEFAULT_JPG_QUALITY, outputStream);
-            }
+            result = bitmap.compress(Bitmap.CompressFormat.JPEG, DEFAULT_JPG_QUALITY, outputStream);
             outputStream.flush();
 
         } catch (FileNotFoundException e) {
